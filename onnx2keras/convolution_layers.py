@@ -1,6 +1,35 @@
+import tensorflow as tf
 from tensorflow import keras
+from tensorflow.python.keras.utils import conv_utils
 import logging
+import functools
+import six
 from .utils import ensure_tf_type, ensure_numpy_type
+
+
+class OptimizedConv2D(keras.layers.Conv2D):
+    def build(self, input_shape):
+        super().build(input_shape)
+
+        # Convert Keras formats to TF native formats.
+        if self.padding == 'causal':
+            tf_padding = 'VALID'  # Causal padding handled in `call`.
+        elif isinstance(self.padding, six.string_types):
+            tf_padding = self.padding.upper()
+        else:
+            tf_padding = self.padding
+        tf_dilations = list(self.dilation_rate)
+        tf_strides = list(self.strides)
+        tf_op_name = self.__class__.__name__
+
+        self._convolution_op = functools.partial(
+            tf.nn.conv2d,
+            strides=tf_strides,
+            padding=tf_padding,
+            data_format=conv_utils.convert_data_format(self.data_format, self.rank + 2),
+            dilations=tf_dilations,
+            name=tf_op_name
+        )
 
 
 def convert_conv(node, params, layers, lambda_func, node_name, keras_name):
@@ -163,7 +192,7 @@ def convert_conv(node, params, layers, lambda_func, node_name, keras_name):
             else:
                 weights = [W]
 
-            conv = keras.layers.Conv2D(
+            conv = OptimizedConv2D(
                 filters=out_channels,
                 kernel_size=(height, width),
                 strides=(strides[0], strides[1]),

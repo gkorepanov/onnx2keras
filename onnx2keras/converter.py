@@ -8,6 +8,7 @@ import inspect
 from onnx import numpy_helper
 
 from .layers import AVAILABLE_CONVERTERS
+from .convolution_layers import OptimizedConv2D
 
 
 def onnx_node_attributes_to_dict(args):
@@ -248,7 +249,7 @@ def onnx_to_keras(onnx_model, input_names,
                 layer['config']['function'] = tuple(kerasf)
 
         keras.backend.set_image_data_format('channels_last')
-        model_tf_ordering = keras.models.Model.from_config(conf)
+        model_tf_ordering = keras.models.Model.from_config(conf, custom_objects={'OptimizedConv2D': OptimizedConv2D})
 
         for dst_layer, src_layer in zip(model_tf_ordering.layers, model.layers):
             dst_layer.set_weights(src_layer.get_weights())

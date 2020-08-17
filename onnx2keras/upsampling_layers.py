@@ -1,6 +1,7 @@
 from tensorflow import keras
 import numpy as np
 import logging
+from .utils import ensure_tf_type, ensure_numpy_type
 
 
 def convert_upsample(node, params, layers, lambda_func, node_name, keras_name):
@@ -17,17 +18,17 @@ def convert_upsample(node, params, layers, lambda_func, node_name, keras_name):
     logger = logging.getLogger('onnx2keras:upsample')
     logger.warning('!!! EXPERIMENTAL SUPPORT (upsample) !!!')
 
-    if len(node.input) != 1:
+    if len(node.input) != 2:
         raise AttributeError('Unsupported number of inputs')
 
     if params['mode'].decode('utf-8') != 'nearest':
         logger.error('Cannot convert non-nearest upsampling.')
         raise AssertionError('Cannot convert non-nearest upsampling')
 
-    scale = np.uint8(params['scales'][-2:])
+    scale = np.uint8(ensure_numpy_type(layers[node.input[1]]))[-2:]
 
     upsampling = keras.layers.UpSampling2D(
-        size=scale, name=keras_name
+        size=scale, name=keras_name, data_format='channels_first'
     )
 
     layers[node_name] = upsampling(layers[node.input[0]])
