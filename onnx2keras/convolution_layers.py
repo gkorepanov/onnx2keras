@@ -111,7 +111,7 @@ def convert_conv(node, params, layers, lambda_func, node_name, keras_name):
         elif len(pads) == 4 and (pads[0] > 0 or pads[1] > 0 or pads[2] > 0 or pads[3] > 0):
             padding = ((pads[0], pads[2]), (pads[1], pads[3]))
 
-        if padding:
+        if False:
             logger.debug('Paddings exist, add ZeroPadding layer')
             padding_name = keras_name + '_pad'
             padding_layer = keras.layers.ZeroPadding2D(
@@ -136,7 +136,7 @@ def convert_conv(node, params, layers, lambda_func, node_name, keras_name):
             conv = keras.layers.DepthwiseConv2D(
                 kernel_size=(height, width),
                 strides=(strides[0], strides[1]),
-                padding='valid',
+                padding='same',
                 use_bias=has_bias,
                 activation=None,
                 depth_multiplier=1,
@@ -161,12 +161,12 @@ def convert_conv(node, params, layers, lambda_func, node_name, keras_name):
 
                 def convolve_lambda_biased(i, k, b):
                     import tensorflow as tf
-                    conv = tf.nn.conv2d(i, k, strides=[1, stride_y, stride_x, 1], dilations=[1, dilation, dilation, 1], padding='VALID', data_format='NHWC')
+                    conv = tf.nn.conv2d(i, k, strides=[1, stride_y, stride_x, 1], dilations=[1, dilation, dilation, 1], padding='SAME', data_format='NHWC')
                     return tf.nn.bias_add(conv, b,  data_format='NHWC')
 
                 def convolve_lambda(i, k):
                     import tensorflow as tf
-                    return tf.nn.conv2d(i, k, strides=[1, stride_y, stride_x, 1], dilations=[1, dilation, dilation, 1], padding='VALID', data_format='NHWC')
+                    return tf.nn.conv2d(i, k, strides=[1, stride_y, stride_x, 1], dilations=[1, dilation, dilation, 1], padding='SAME', data_format='NHWC')
 
                 input_groups = tf.split(axis=3, num_or_size_splits=groups, value=x)
                 weight_groups = tf.split(axis=3, num_or_size_splits=groups, value=W)
@@ -196,7 +196,7 @@ def convert_conv(node, params, layers, lambda_func, node_name, keras_name):
                 filters=out_channels,
                 kernel_size=(height, width),
                 strides=(strides[0], strides[1]),
-                padding='valid',
+                padding='same',
                 weights=weights,
                 use_bias=has_bias,
                 activation=None,
